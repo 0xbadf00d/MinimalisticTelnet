@@ -1,13 +1,17 @@
 // minimalistic telnet implementation
-// conceived by Tom Janssens on 2007/06/06  for codeproject
+// conceived by Tom Janssens on 2007/06/06 for codeproject
 //
 // http://www.corebvba.be
 
 // Modifications
 //
-// Date         Person      Description
-// ==========   =========   =======================================================================
-// 2013-06-06   jsagara     Implements IDisposable. Miscellaneous refactoring.
+// Date Person Description
+// ========== ========= ==============================================================================
+// 2013-06-06 jsagara   Implements IDisposable. Miscellaneous refactoring.
+// 2014-05-15 mewiii    Implements new methods for working with HP switches;
+//                      Implements setter/getter methods to change the default timeout value;
+//                      Implements new methods for reading until some text you're looking for is found
+//                      Implements Close() method to disconnect from remote host
 
 using System;
 using System.Net.Sockets;
@@ -19,14 +23,24 @@ namespace MinimalisticTelnet
     public class TelnetConnection : IDisposable
     {
         private TcpClient tcpSocket;
-        private int TimeoutMs = 100;
+        private int _TimeoutMs = 100;
+        private int _ReadUntilLimit = 3;
 
         public bool IsConnected
         {
-            get
-            {
-                return tcpSocket.Connected;
-            }
+            get { return tcpSocket.Connected; }
+        }
+
+        public int TimeoutMs
+        {
+            set { this._TimeoutMs = value; }
+            get { return _TimeoutMs; }
+        }
+
+        public int ReadUntilLimit
+        {
+            set { this._ReadUntilLimit = value; }           
+            get { return _ReadUntilLimit; }
         }
 
         public TelnetConnection(string hostname, int port)
@@ -67,6 +81,75 @@ namespace MinimalisticTelnet
             return s;
         }
 
+        // added this method useful with Cisco routers that ask for a password only
+        // based on Login() above
+        public string PasswordOnlyLogin(string Password, int LoginTimeoutMs)
+        {
+            int oldTimeoutMs = TimeoutMs;
+            TimeoutMs = LoginTimeoutMs;
+            string s = Read();
+
+            if (!s.TrimEnd().EndsWith(":"))
+                throw new Exception("Failed to connect : no password prompt");
+            WriteLine(Password);
+
+            s += Read();
+            TimeoutMs = oldTimeoutMs;
+            return s;
+        }
+
+        // added this generic method useful with HP Switches that require that a space
+        // be sent prior to entering the password
+        // the user name is optional when it is left empty
+        // HP switches output lots of escape sequences and it is unlikely a prompt cleanly ends with #, $, >, etc.
+        public string HPGenericLogin(string Username, string Password, bool sendSpace, int LoginTimeoutMs)
+        {
+            int oldTimeoutMs = TimeoutMs;
+            TimeoutMs = LoginTimeoutMs;
+            string s = "";
+
+            if (sendSpace)
+            {
+                s = ReadUntilString("Press any key to continue");
+                WriteLine(" ");
+            }
+
+            if (Username.Length != 0)
+            {
+                s += ReadUntilString("Username:");
+                WriteLine(Username);
+            }
+
+            s += ReadUntilString("Password:");
+            WriteLine(Password);
+
+            TimeoutMs = oldTimeoutMs;
+            return s;
+        }
+
+        public string HPLogout()
+        {
+            WriteLine("logout");
+            string s = ReadUntilString("log out [y/n]?");
+            WriteLine("y");
+
+            this.Close();
+
+            return s;
+        }
+
+        public string HPLogout(int LogoutTimeoutMs)
+        {
+            int oldTimeoutMs = TimeoutMs;
+            TimeoutMs = LogoutTimeoutMs;
+
+            string s = HPLogout();
+
+            TimeoutMs = oldTimeoutMs;
+
+            return s;
+        }
+
         public void WriteLine(string cmd)
         {
             Write(cmd + "\n");
@@ -99,6 +182,32 @@ namespace MinimalisticTelnet
             } while (tcpSocket.Available > 0);
 
             return sb.ToString();
+        }
+
+        // based on Read()
+        // read until find text is found in the input stream
+        public string ReadUntilString(string findText)
+        {
+            int counter = ReadUntilLimit;
+            string s = Read();
+            while (!s.Contains(findText))
+            {
+                string s2 = Read();
+                if (s2.Length == 0)
+                {
+                    counter -= 1;
+                    if (counter < 1)
+                    {
+                        throw new Exception("Failed to receive find text : " + findText);
+                    }
+                }
+                else
+                {
+                    counter = ReadUntilLimit;
+                }
+                s += s2;
+            }
+            return s;
         }
 
         private void ParseTelnet(StringBuilder sb)
@@ -158,6 +267,14 @@ namespace MinimalisticTelnet
                         sb.Append((char)input);
                         break;
                 }
+            }
+        }
+
+        public void Close()
+        {
+            if (IsConnected)
+            {
+                tcpSocket.Close();
             }
         }
 
