@@ -12,10 +12,15 @@
 //                      Implements setter/getter methods to change the default timeout value;
 //                      Implements new methods for reading until some text you're looking for is found
 //                      Implements Close() method to disconnect from remote host
+// 2015-02-05 0xbadf00d Implements prompt variable and uses it with ReadUntilString to capture returned
+//                      data using the Command() method.
+//                      Implements Enable() & isEnabled() to enable Cisco devices and check status.
+//                      Implements char[] _toTrim as null characters seen on some Cisco Nexus devices
 
 using System;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace MinimalisticTelnet
@@ -25,6 +30,8 @@ namespace MinimalisticTelnet
         private TcpClient tcpSocket;
         private int _TimeoutMs = 100;
         private int _ReadUntilLimit = 3;
+        private string _prompt = "";
+        private char[] _toTrim = { '\n', '\r', '\0' };
 
         public bool IsConnected
         {
@@ -53,6 +60,7 @@ namespace MinimalisticTelnet
             Dispose(false);
         }
 
+        // prompt set by Login when last line is trimmed using char[] _toTrim
         public string Login(string username, string password, int loginTimeoutMs)
         {
             int oldTimeoutMs = TimeoutMs;
@@ -77,6 +85,12 @@ namespace MinimalisticTelnet
             s += Read();
 
             TimeoutMs = oldTimeoutMs;
+
+            Match match = Regex.Match(s, "^.*$", RegexOptions.Multiline | RegexOptions.RightToLeft);
+            if (match.Success)
+            {
+                _prompt = match.Value.Trim(_toTrim);
+            }
 
             return s;
         }
@@ -208,6 +222,75 @@ namespace MinimalisticTelnet
                 s += s2;
             }
             return s;
+        }
+
+        //based on ReadUntilString(string findnext)
+        //using the prompt variable send the command and reads until the prompt is found.
+        public string Command(string command)
+        {
+            WriteLine(command);
+            int counter = ReadUntilLimit;
+            string s = Read();
+            while (!s.Contains(_prompt))
+            {
+                string s2 = Read();
+                if (s2.Length == 0)
+                {
+                    counter -= 1;
+                    if (counter < 1)
+                    {
+                        throw new Exception("Failed to recieve prompt after command : " + command);
+                    }
+                }
+                else
+                {
+                    counter = ReadUntilLimit;
+                }
+                s += s2;
+            }
+            return s;
+            
+        }
+
+        // Enable method based on Login, prompt set after enable attempted
+        public void Enable(string enablePassword, int EnableTimeoutMs)
+        {
+            int oldTimeoutMs = TimeoutMs;
+            TimeoutMs = EnableTimeoutMs;
+
+            WriteLine("enable");
+            string s = Read();
+
+            if (!s.TrimEnd().EndsWith(":"))
+                throw new Exception("Failed to enable : no password prompt");
+            WriteLine(enablePassword);
+
+            s += Read();
+            TimeoutMs = oldTimeoutMs;
+
+            Match match = Regex.Match(s, "^.*$", RegexOptions.Multiline | RegexOptions.RightToLeft);
+            if (match.Success)
+            {
+                _prompt = match.Value.Trim(_toTrim);
+            }
+            
+        }
+
+        // Finds the last character of the current prompt returns true if it is '#'
+        // retruns false if it is '>' throws an Exception if it is niether
+        public bool isEnabled()
+        {
+            char last = _prompt[_prompt.Length - 1];
+            if (last == '#')
+            {
+                return true;
+            }
+            else if (last == '>')
+            {
+                return false;
+            }
+            else
+                throw new Exception("Unusual prompt character found");
         }
 
         private void ParseTelnet(StringBuilder sb)
