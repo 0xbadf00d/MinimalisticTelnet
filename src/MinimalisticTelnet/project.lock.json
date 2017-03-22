@@ -2,7 +2,7 @@
   "locked": false,
   "version": 2,
   "targets": {
-    ".NETStandard,Version=v1.5": {
+    ".NETStandard,Version=v1.3": {
       "Microsoft.NETCore.Jit/1.0.2": {
         "type": "package"
       },
@@ -284,7 +284,7 @@
           "System.Runtime": "4.1.0"
         },
         "compile": {
-          "ref/netstandard1.5/System.Diagnostics.Tracing.dll": {}
+          "ref/netstandard1.3/System.Diagnostics.Tracing.dll": {}
         }
       },
       "System.Globalization/4.0.11": {
@@ -320,7 +320,7 @@
           "System.Threading.Tasks": "4.0.11"
         },
         "compile": {
-          "ref/netstandard1.5/System.IO.dll": {}
+          "ref/netstandard1.3/System.IO.dll": {}
         }
       },
       "System.IO.Compression/4.1.0": {
@@ -508,7 +508,7 @@
           "System.Runtime": "4.1.0"
         },
         "compile": {
-          "ref/netstandard1.5/System.Reflection.dll": {}
+          "ref/netstandard1.3/System.Reflection.dll": {}
         }
       },
       "System.Reflection.Extensions/4.0.1": {
@@ -554,7 +554,7 @@
           "Microsoft.NETCore.Targets": "1.0.1"
         },
         "compile": {
-          "ref/netstandard1.5/System.Runtime.dll": {}
+          "ref/netstandard1.3/System.Runtime.dll": {}
         }
       },
       "System.Runtime.Extensions/4.1.0": {
@@ -565,7 +565,7 @@
           "System.Runtime": "4.1.0"
         },
         "compile": {
-          "ref/netstandard1.5/System.Runtime.Extensions.dll": {}
+          "ref/netstandard1.3/System.Runtime.Extensions.dll": {}
         }
       },
       "System.Runtime.Handles/4.0.1": {
@@ -590,7 +590,7 @@
           "System.Runtime.Handles": "4.0.1"
         },
         "compile": {
-          "ref/netstandard1.5/System.Runtime.InteropServices.dll": {}
+          "ref/netstandard1.3/System.Runtime.InteropServices.dll": {}
         }
       },
       "System.Runtime.InteropServices.RuntimeInformation/4.0.0": {
@@ -641,7 +641,7 @@
           "System.Security.Cryptography.Primitives": "4.0.0"
         },
         "compile": {
-          "ref/netstandard1.4/System.Security.Cryptography.Algorithms.dll": {}
+          "ref/netstandard1.3/System.Security.Cryptography.Algorithms.dll": {}
         }
       },
       "System.Security.Cryptography.Encoding/4.0.0": {
@@ -701,7 +701,7 @@
           "System.Security.Cryptography.Encoding": "4.0.0"
         },
         "compile": {
-          "ref/netstandard1.4/System.Security.Cryptography.X509Certificates.dll": {}
+          "ref/netstandard1.3/System.Security.Cryptography.X509Certificates.dll": {}
         }
       },
       "System.Text.Encoding/4.0.11": {
@@ -3583,6 +3583,6 @@
       "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "NETStandard.Library >= 1.6.0"
     ],
-    ".NETStandard,Version=v1.5": []
+    ".NETStandard,Version=v1.3": []
   }
 }
